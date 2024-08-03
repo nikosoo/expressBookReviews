@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const books = require("./booksdb.js");
 const regd_users = express.Router();
 
-const JWT_SECRET = "your_jwt_secret"; // You should use an environment variable or a more secure method to store secrets
+const JWT_SECRET = "your_jwt_secret"; // Use environment variables in production
 
 let users = [];
 
@@ -19,9 +19,29 @@ const authenticatedUser = (username, password) => {
   );
 };
 
+// Register a new user
+regd_users.post("/register", (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res
+      .status(400)
+      .json({ message: "Username and password are required" });
+  }
+
+  if (isValid(username)) {
+    return res.status(400).json({ message: "Username already exists" });
+  }
+
+  // Add the new user to the users array
+  users.push({ username, password });
+  res.status(201).json({ message: "User registered successfully" });
+});
+
 // Login endpoint
 regd_users.post("/login", (req, res) => {
   const { username, password } = req.body;
+
   if (!authenticatedUser(username, password)) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
@@ -56,6 +76,11 @@ regd_users.put("/auth/review/:isbn", authenticateToken, (req, res) => {
   const book = books.find((book) => book.ISBN === isbn);
   if (!book) {
     return res.status(404).json({ message: "Book not found" });
+  }
+
+  // Initialize reviews array if it doesn't exist
+  if (!book.reviews) {
+    book.reviews = [];
   }
 
   // Find if the review already exists for the user
